@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Prediction</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        p {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        /* Chat Styles */
+        #chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+
+        #user-message,
+        .ai-response {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+
+        #user-message {
+            max-width: 600px;
+            align-self: flex-end;
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        .ai-response {
+            max-width: inherit;
+            align-self: flex-start;
+            background-color: #3498db;
+            color: #fff;
+        }
+        input[type="text" i] { 
+            height: 30px;
+            border-radius: 4px;
+            width: 500px;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+        <!-- <h1>Dr.Abhi's Disease Prediction Model</h1> -->
+        <h1>AI Chatbot for Diagnosis of Acute Diseases</h1>
+        <h2>Please Check the Symptoms you're facing</h2>
+    </center>
+    <form method="post" action="/">
+        <table>
+            <tr>
+                <th>Symptom</th>
+                <th>Check</th>
+            </tr>
+            {% for symptom, value in symptoms.items() %}
+            <tr>
+                <td><label for="{{ symptom }}">{{ symptom }}</label></td>
+                <td><input type="checkbox" id="{{ symptom }}" name="{{ symptom }}" value="1" {% if value==1 %}checked{%
+                        endif %}></td>
+            </tr>
+            {% endfor %}
+        </table>
+        <br>
+        <center><button type="submit">Submit</button></center>
+        <center>
+            <br>
+            {% if predicted_disease %}
+            <p><strong>Predicted Disease: {{ predicted_disease }}</strong></p>
+            {% endif %}
+        </center>
+        <br>
+        <center><button type="button"  onclick="toggleChat()" >Chat with AI</button></center>
+    </form>
+
+    <!-- Chat Interface -->
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="user-message">
+            <label for="user-input">Your message:</label>
+            <input type="text" id="user-input">
+
+            <button onclick="sendMessage()" style="background-color: #ffca28; color: #333333; float:right; border-radius: 8px;"  id="chatButton">Send</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+          }
+        }
+      </script>
+    <script type="module">
+        const chatButton = document.getElementById('chatButton');
+        chatButton.addEventListener('click', sendMessage);
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+        const API_KEY = "AIzaSyBdYrFbOVdhQZLrEuwnk1FjmoCUWquHjxQ";
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        async function sendMessage() {
+            var userMessage = document.getElementById('user-input').value;
+            var chatMessages = document.getElementById('chat-messages');
+            
+            // Display user message
+            var userMessageDiv = document.createElement('div');
+            userMessageDiv.innerHTML = '<div id="user-message"><strong>You:</strong> ' + userMessage + '</div>';
+            chatMessages.appendChild(userMessageDiv);
+            
+            // Clear the user input
+            document.getElementById('user-input').value = '';
+            
+            // Display loading message while AI is thinking
+            var aiLoadingDiv = document.createElement('div');
+            aiLoadingDiv.innerHTML = '<div class="ai-response"><strong>AI:</strong> Prescription Loading...</div>';
+            chatMessages.appendChild(aiLoadingDiv);
+
+            // For text-only input, use the gemini-pro model
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+            const prompt = userMessage
+            console.log(prompt);
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            speakBro(text);
+            console.log(text);
+            
+            // Display AI response
+            aiLoadingDiv.innerHTML = '<div class="ai-response"><strong>AI:</strong> ' + text + '</div>';
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function speakBro(prompt) {
+            let utterance = new SpeechSynthesisUtterance();
+            utterance.text = prompt;
+            utterance.voice = window.speechSynthesis.getVoices()[0];
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+
+    <script>
+        function toggleChat() {
+            var chatContainer = document.getElementById('chat-container');
+            chatContainer.style.display = (chatContainer.style.display === 'none' || chatContainer.style.display === '') ? 'block' : 'none';
+        }
+    </script>
+</body>
+
+</html>
